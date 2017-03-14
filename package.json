@@ -22,5 +22,11 @@
   "bugs": {
     "url": "https://github.com/dominicrico/obd-parsers-bluetooth-connection/issues"
   },
-  "homepage": "https://github.com/dominicrico/obd-parsers-bluetooth-connection#readme"
+  "homepage": "https://github.com/dominicrico/obd-parsers-bluetooth-connection#readme",
+  "dependencies": {
+    "assert": "^1.4.1",
+    "bluebird": "^3.5.0",
+    "bluetooth-serial-port": "^2.1.1",
+    "verror": "^1.9.0"
+  }
 }
