@@ -67,6 +67,10 @@ module.exports = function(opts) {
 								function() {
 									conn = bluetooth;
 									onConnectionOpened(configureFn);
+								},
+								function(err) {
+									debug('error while connecting to OBDII adapter');
+									reject(err);
 								});
 						}
 					});
