@@ -1,6 +1,6 @@
 {
   "name": "obd-parser-bluetooth-connection",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "opd-parser bluetooth connector",
   "main": "index.js",
   "scripts": {
