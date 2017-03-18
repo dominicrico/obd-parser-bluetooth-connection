@@ -69,8 +69,7 @@ module.exports = function(opts) {
 									onConnectionOpened(configureFn);
 								},
 								function(err) {
-									debug('error while connecting to OBDII adapter');
-									reject(err);
+									onConnectionOpened(configureFn, err);
 								});
 						}
 					});
