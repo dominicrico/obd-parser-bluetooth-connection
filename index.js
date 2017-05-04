@@ -11,6 +11,11 @@ var Promise = require('bluebird'),
 // Keep track of connection requests
 var connQ = [];
 
+var _write = bluetooth.write;
+bluetooth.write = function(msg, cb) {
+	msg = new Buffer(msg, 'utf-8');
+	return _write(msg, cb);
+};
 /**
  * Factory function that can be used to get connections.
  *
