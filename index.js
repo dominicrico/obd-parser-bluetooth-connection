@@ -13,6 +13,7 @@ var connQ = [];
 
 var _write = bluetooth.write;
 bluetooth.write = function(msg, cb) {
+	debug(msg, 'write')
 	msg = new Buffer(msg, 'utf-8');
 	return _write(msg, cb);
 };
