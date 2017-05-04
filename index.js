@@ -57,23 +57,27 @@ module.exports = function(opts) {
 				});
 
 				// create bluetooth device instance
-
-
-				bluetooth.listPairedDevices(function(devices) {
-					devices.forEach(function(device) {
-						if (device.name.toLowerCase().indexOf(opts.name) !== -1) {
-							// make bluetooth connect to remote device
-							bluetooth.connect(device.address, device.services[0].channel,
-								function() {
+				bluetooth.on('found', function(address, name) {
+					if (name.toLowerCase().indexOf(opts.name) !== -1) {
+						// make bluetooth connect to remote device
+						bluetooth.findSerialPortChannel(address, function(channel) {
+							bluetooth.connect(address, channel, function() {
+									debug('Connected!');
 									conn = bluetooth;
 									onConnectionOpened(configureFn);
 								},
 								function(err) {
+									debug('Connection Error!', err);
 									onConnectionOpened(configureFn, err);
 								});
-						}
-					});
+						});
+					}
+				}, function() {
+					debug('Bluetooth Device not found!');
+					onConnectionOpened(configureFn, 'Could not find Bluetooth Device!');
 				});
+
+				bluetooth.inquire();
 			}
 		});
 	};
