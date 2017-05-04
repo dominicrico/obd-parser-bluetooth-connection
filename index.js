@@ -65,7 +65,8 @@ module.exports = function(opts) {
 				bluetooth.on('found', function(address, name) {
 					debug(name);
 					if (name.toLowerCase().indexOf(opts.name) !== -1) {
-						// make bluetooth connect to remote device
+						debug('matzch')
+							// make bluetooth connect to remote device
 						bluetooth.findSerialPortChannel(address, function(channel) {
 							bluetooth.connect(address, channel, function() {
 									debug('Connected!');
