@@ -69,16 +69,20 @@ module.exports = function(opts) {
 						debug('matzch')
 							// make bluetooth connect to remote device
 						bluetooth.findSerialPortChannel(address, function(channel) {
-							bluetooth.connect(address, channel, function() {
-									debug('Connected!');
-									conn = bluetooth;
-									onConnectionOpened(configureFn);
-								},
-								function(err) {
-									debug('Connection Error!', err);
-									onConnectionOpened(configureFn, err);
-								});
-						});
+								bluetooth.connect(address, channel, function() {
+										debug('Connected!');
+										conn = bluetooth;
+										onConnectionOpened(configureFn);
+									},
+									function(err) {
+										debug('Connection Error!', err);
+										onConnectionOpened(configureFn, err);
+									});
+							},
+							function(err) {
+								debug('Serial Port Error!', err);
+								onConnectionOpened(configureFn, err);
+							});
 					}
 				}, function() {
 					debug('Bluetooth Device not found!');
