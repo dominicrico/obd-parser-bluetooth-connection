@@ -28,131 +28,150 @@ bluetooth.write = function(msg, cb) {
  */
 module.exports = function(opts) {
 
-	assert.equal(
-		typeof opts,
-		'object',
-		'an options object must be provided to obd-serial-connection'
-	);
-
-	assert.equal(
-		typeof opts.name,
-		'string',
-		'opts.name should be a string provided to obd-bluetooth-connection'
-	);
-
-	return function _obdBluetoothConnectorFn(configureFn) {
 		assert.equal(
-			typeof configureFn,
-			'function',
-			'you must provide a configureFn that returns a promise'
+			typeof opts,
+			'object',
+			'an options object must be provided to obd-serial-connection'
 		);
 
-		return new Promise(function(resolve, reject) {
-			debug('creating bluetooth connection');
+		assert.equal(
+			typeof opts.name,
+			'string',
+			'opts.name should be a string provided to obd-bluetooth-connection'
+		);
 
-			if (conn && conn.ready) {
-				debug('returning existing connection instance');
-				resolve(conn);
-			} else {
-				debug('opening a bluetooth connection');
+		return function _obdBluetoothConnectorFn(configureFn) {
+				assert.equal(
+					typeof configureFn,
+					'function',
+					'you must provide a configureFn that returns a promise'
+				);
 
-				// Keep track of the promise(s) we're returning
-				connQ.push({
-					resolve: resolve,
-					reject: reject
-				});
+				return new Promise(function(resolve, reject) {
+							debug('creating bluetooth connection');
 
-				// create bluetooth device instance
-				bluetooth.on('found', function(address, name) {
-					debug(name);
-					if (name.toLowerCase().indexOf(opts.name) !== -1) {
-						debug('matzch')
-							// make bluetooth connect to remote device
-						bluetooth.findSerialPortChannel(address, function(channel) {
-								bluetooth.connect(address, channel, function() {
-										debug('Connected!');
-										conn = bluetooth;
-										onConnectionOpened(configureFn);
-									},
-									function(err) {
-										debug('Connection Error!', err);
-										onConnectionOpened(configureFn, err);
+							if (conn && conn.ready) {
+								debug('returning existing connection instance');
+								resolve(conn);
+							} else {
+								debug('opening a bluetooth connection');
+
+								// Keep track of the promise(s) we're returning
+								connQ.push({
+									resolve: resolve,
+									reject: reject
+								});
+
+								// create bluetooth device instance
+								// bluetooth.on('found', function(address, name) {
+								// 	debug(name);
+								// 	if (name.toLowerCase().indexOf(opts.name) !== -1) {
+								// 		debug('matzch')
+								// 			// make bluetooth connect to remote device
+								// 		bluetooth.findSerialPortChannel(address, function(channel) {
+								// 				bluetooth.connect(address, channel, function() {
+								// 						debug('Connected!');
+								// 						conn = bluetooth;
+								// 						onConnectionOpened(configureFn);
+								// 					},
+								// 					function(err) {
+								// 						debug('Connection Error!', err);
+								// 						onConnectionOpened(configureFn, err);
+								// 					});
+								// 			},
+								// 			function(err) {
+								// 				debug('Serial Port Error!', err);
+								// 				onConnectionOpened(configureFn, err);
+								// 			});
+								// 	}
+								// }, function() {
+								// 	debug('Bluetooth Device not found!');
+								// 	onConnectionOpened(configureFn, 'Could not find Bluetooth Device!');
+								// });
+								//
+								// bluetooth.inquire();
+
+								bluetooth.listPairedDevices(function(devices) {
+									devices.forEach(function(device) {
+										if (device.name.toLowerCase().indexOf(opts.name) !== -1) {
+											// make bluetooth connect to remote device
+											bluetooth.connect(device.address, device.services[0].channel,
+												function() {
+													debug('Connected!');
+													conn = bluetooth;
+													onConnectionOpened(configureFn);
+												},
+												function(err) {
+													debug('Connection Error!', err);
+													onConnectionOpened(configureFn, err);
+												});
+										}
 									});
-							},
-							function(err) {
-								debug('Serial Port Error!', err);
-								onConnectionOpened(configureFn, err);
-							});
-					}
-				}, function() {
-					debug('Bluetooth Device not found!');
-					onConnectionOpened(configureFn, 'Could not find Bluetooth Device!');
-				});
+								}, function(err) {
+									debug('Bluetooth Device not found!');
+								});
+							};
 
-				bluetooth.inquire();
-			}
-		});
-	};
-};
+							/**
+							 * Parses serial data and emits and event related to the PID of the data.
+							 * Pollers will listen for events related to their PID
+							 * @param {String} str
+							 */
+							function onData(str) {
+								debug('received obd data %s', str);
+							}
 
-/**
- * Parses serial data and emits and event related to the PID of the data.
- * Pollers will listen for events related to their PID
- * @param {String} str
- */
-function onData(str) {
-	debug('received obd data %s', str);
-}
+							/**
+							 * Resolves/rejects any pending connection requests, depending on Error passed
+							 * @param  {Error} err
+							 */
+							function respondToConnectionRequests(err) {
+								connQ.forEach(function(req) {
+									if (err) {
+										req.reject(err);
+									} else {
+										req.resolve(conn);
+									}
+								});
+							}
 
-/**
- * Resolves/rejects any pending connection requests, depending on Error passed
- * @param  {Error} err
- */
-function respondToConnectionRequests(err) {
-	connQ.forEach(function(req) {
-		if (err) {
-			req.reject(err);
-		} else {
-			req.resolve(conn);
-		}
-	});
-}
+							/**
+							 * General callback for the "error" event on the connection to ensure
+							 * all errors are cpatured and logged.
+							 * @param  {Erorr} err
+							 */
+							function onError(err) {
+								debug('bluetooth emitted an error %s', err.toString());
+								debug(err.stack);
+							}
 
-/**
- * General callback for the "error" event on the connection to ensure
- * all errors are cpatured and logged.
- * @param  {Erorr} err
- */
-function onError(err) {
-	debug('bluetooth emitted an error %s', err.toString());
-	debug(err.stack);
-}
+							/**
+							 * Handler for the "open" event for connections.
+							 *
+							 * This performs error handling if the connection fails, or sets up the
+							 * connection with useful defaults if the connection is successful.
+							 *
+							 * @param  {Error} err
+							 */
+							function onConnectionOpened(configureFn, err) {
+								if (err) {
+									err = new VError(err, 'failed to connect to ecu');
 
-/**
- * Handler for the "open" event for connections.
- *
- * This performs error handling if the connection fails, or sets up the
- * connection with useful defaults if the connection is successful.
- *
- * @param  {Error} err
- */
-function onConnectionOpened(configureFn, err) {
-	if (err) {
-		err = new VError(err, 'failed to connect to ecu');
+									debug('error establishing a bluetooth connection: %s', err);
 
-		debug('error establishing a bluetooth connection: %s', err);
+									respondToConnectionRequests(err);
+								} else {
+									debug(
+										'bluetooth connection established, running configuration function');
 
-		respondToConnectionRequests(err);
-	} else {
-		debug('bluetooth connection established, running configuration function');
+									return configureFn(conn)
+										.then(function onConfigurationComplete() {
+											debug(
+												'finished running configuration function, returning connection');
 
-		return configureFn(conn)
-			.then(function onConfigurationComplete() {
-				debug('finished running configuration function, returning connection');
+											conn.ready = true;
 
-				conn.ready = true;
-
-				respondToConnectionRequests();
-			});
-	}
-}
+											respondToConnectionRequests();
+										});
+								}
+							}
