@@ -110,68 +110,69 @@ module.exports = function(opts) {
 								}, function(err) {
 									debug('Bluetooth Device not found!');
 								});
-							};
-
-							/**
-							 * Parses serial data and emits and event related to the PID of the data.
-							 * Pollers will listen for events related to their PID
-							 * @param {String} str
-							 */
-							function onData(str) {
-								debug('received obd data %s', str);
 							}
+						};
 
-							/**
-							 * Resolves/rejects any pending connection requests, depending on Error passed
-							 * @param  {Error} err
-							 */
-							function respondToConnectionRequests(err) {
-								connQ.forEach(function(req) {
-									if (err) {
-										req.reject(err);
-									} else {
-										req.resolve(conn);
-									}
-								});
-							}
+						/**
+						 * Parses serial data and emits and event related to the PID of the data.
+						 * Pollers will listen for events related to their PID
+						 * @param {String} str
+						 */
+						function onData(str) {
+							debug('received obd data %s', str);
+						}
 
-							/**
-							 * General callback for the "error" event on the connection to ensure
-							 * all errors are cpatured and logged.
-							 * @param  {Erorr} err
-							 */
-							function onError(err) {
-								debug('bluetooth emitted an error %s', err.toString());
-								debug(err.stack);
-							}
-
-							/**
-							 * Handler for the "open" event for connections.
-							 *
-							 * This performs error handling if the connection fails, or sets up the
-							 * connection with useful defaults if the connection is successful.
-							 *
-							 * @param  {Error} err
-							 */
-							function onConnectionOpened(configureFn, err) {
+						/**
+						 * Resolves/rejects any pending connection requests, depending on Error passed
+						 * @param  {Error} err
+						 */
+						function respondToConnectionRequests(err) {
+							connQ.forEach(function(req) {
 								if (err) {
-									err = new VError(err, 'failed to connect to ecu');
-
-									debug('error establishing a bluetooth connection: %s', err);
-
-									respondToConnectionRequests(err);
+									req.reject(err);
 								} else {
-									debug(
-										'bluetooth connection established, running configuration function');
-
-									return configureFn(conn)
-										.then(function onConfigurationComplete() {
-											debug(
-												'finished running configuration function, returning connection');
-
-											conn.ready = true;
-
-											respondToConnectionRequests();
-										});
+									req.resolve(conn);
 								}
+							});
+						}
+
+						/**
+						 * General callback for the "error" event on the connection to ensure
+						 * all errors are cpatured and logged.
+						 * @param  {Erorr} err
+						 */
+						function onError(err) {
+							debug('bluetooth emitted an error %s', err.toString());
+							debug(err.stack);
+						}
+
+						/**
+						 * Handler for the "open" event for connections.
+						 *
+						 * This performs error handling if the connection fails, or sets up the
+						 * connection with useful defaults if the connection is successful.
+						 *
+						 * @param  {Error} err
+						 */
+						function onConnectionOpened(configureFn, err) {
+							if (err) {
+								err = new VError(err, 'failed to connect to ecu');
+
+								debug('error establishing a bluetooth connection: %s', err);
+
+								respondToConnectionRequests(err);
+							} else {
+								debug(
+									'bluetooth connection established, running configuration function');
+
+								return configureFn(conn)
+									.then(function onConfigurationComplete() {
+										debug(
+											'finished running configuration function, returning connection');
+
+										conn.ready = true;
+
+										respondToConnectionRequests();
+									});
 							}
+						}
