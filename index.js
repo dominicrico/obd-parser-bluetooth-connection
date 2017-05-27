@@ -40,6 +40,22 @@ module.exports = function(opts) {
 		'opts.name should be a string provided to obd-bluetooth-connection'
 	);
 
+	if (opts.address) {
+		assert.equal(
+			typeof opts.address,
+			'string',
+			'opts.address should be a string provided to obd-bluetooth-connection'
+		);
+	}
+
+	if (opts.channel) {
+		assert.equal(
+			typeof opts.channel,
+			'number',
+			'opts.channel should be a number provided to obd-bluetooth-connection'
+		);
+	}
+
 	return function _obdBluetoothConnectorFn(configureFn) {
 		assert.equal(
 			typeof configureFn,
@@ -62,53 +78,46 @@ module.exports = function(opts) {
 					reject: reject
 				});
 
-				// create bluetooth device instance
-				// bluetooth.on('found', function(address, name) {
-				// 	debug(name);
-				// 	if (name.toLowerCase().indexOf(opts.name) !== -1) {
-				// 		debug('matzch')
-				// 			// make bluetooth connect to remote device
-				// 		bluetooth.findSerialPortChannel(address, function(channel) {
-				// 				bluetooth.connect(address, channel, function() {
-				// 						debug('Connected!');
-				// 						conn = bluetooth;
-				// 						onConnectionOpened(configureFn);
-				// 					},
-				// 					function(err) {
-				// 						debug('Connection Error!', err);
-				// 						onConnectionOpened(configureFn, err);
-				// 					});
-				// 			},
-				// 			function(err) {
-				// 				debug('Serial Port Error!', err);
-				// 				onConnectionOpened(configureFn, err);
-				// 			});
-				// 	}
-				// }, function() {
-				// 	debug('Bluetooth Device not found!');
-				// 	onConnectionOpened(configureFn, 'Could not find Bluetooth Device!');
-				// });
-				//
-				// bluetooth.inquire();
-				bluetooth.listPairedDevices(function(devices) {
-					devices.forEach(function(device) {
-						if (device.name.toLowerCase().indexOf(opts.name) !== -1) {
-							// make bluetooth connect to remote device
-							bluetooth.connect(device.address, device.services[0].channel,
-								function() {
-									debug('Connected!');
-									conn = bluetooth;
-									onConnectionOpened(configureFn);
+				if (!opts.channel && !opts.address) {
+					// create bluetooth device instance
+					bluetooth.on('found', function(address, name) {
+						debug(name);
+						if (name.toLowerCase().indexOf(opts.name) !== -1) {
+							debug('matzch')
+								// make bluetooth connect to remote device
+							bluetooth.findSerialPortChannel(address, function(channel) {
+									bluetooth.connect(address, channel, function() {
+											debug('Connected!');
+											conn = bluetooth;
+											onConnectionOpened(configureFn);
+										},
+										function(err) {
+											debug('Connection Error!', err);
+											onConnectionOpened(configureFn, err);
+										});
 								},
 								function(err) {
-									debug('Connection Error!', err);
+									debug('Serial Port Error!', err);
 									onConnectionOpened(configureFn, err);
 								});
 						}
+					}, function() {
+						debug('Bluetooth Device not found!');
+						onConnectionOpened(configureFn, 'Could not find Bluetooth Device!');
 					});
-				}, function(err) {
-					debug('Bluetooth Device not found!');
-				});
+
+					bluetooth.inquire();
+				} else {
+					bluetooth.connect(opts.address, opts.channel, function() {
+							debug('Connected!');
+							conn = bluetooth;
+							onConnectionOpened(configureFn);
+						},
+						function(err) {
+							debug('Connection Error!', err);
+							onConnectionOpened(configureFn, err);
+						});
+				}
 			}
 		});
 	};
