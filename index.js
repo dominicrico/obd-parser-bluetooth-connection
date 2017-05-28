@@ -11,9 +11,9 @@ var Promise = require('bluebird'),
 // Keep track of connection requests
 var connQ = [];
 
-var _write = bluetooth.write;
+var _write = bluetooth.write.bind(bluetooth);
 bluetooth.write = function(msg, cb) {
-	debug(msg, 'write')
+	debug(msg, 'write');
 	msg = new Buffer(msg, 'utf-8');
 	return _write(msg, cb);
 };
@@ -82,11 +82,14 @@ module.exports = function(opts) {
 					// create bluetooth device instance
 					bluetooth.on('found', function(address, name) {
 						debug(name);
-						if (name.toLowerCase().indexOf(opts.name) !== -1) {
-							debug('matzch')
-								// make bluetooth connect to remote device
-							bluetooth.findSerialPortChannel(address, function(channel) {
-									bluetooth.connect(address, channel, function() {
+						if (name.toLowerCase().indexOf(opts.name.toLowerCase()) !==
+							-1) {
+							debug('matching bluetooth device');
+							// make bluetooth connect to remote device
+							bluetooth.findSerialPortChannel(address, function(
+									channel) {
+									bluetooth.connect(address, channel,
+										function() {
 											debug('Connected!');
 											conn = bluetooth;
 											onConnectionOpened(configureFn);
@@ -103,7 +106,8 @@ module.exports = function(opts) {
 						}
 					}, function() {
 						debug('Bluetooth Device not found!');
-						onConnectionOpened(configureFn, 'Could not find Bluetooth Device!');
+						onConnectionOpened(configureFn,
+							'Could not find Bluetooth Device!');
 					});
 
 					bluetooth.inquire();
@@ -173,7 +177,6 @@ function onConnectionOpened(configureFn, err) {
 		respondToConnectionRequests(err);
 	} else {
 		debug('bluetooth connection established, running configuration function');
-
 		return configureFn(conn)
 			.then(function onConfigurationComplete() {
 				debug('finished running configuration function, returning connection');
